@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/dbConnect";
 import { Otp, User } from "@/lib/models/user";
 import bcrypt from "bcrypt";
-import nodemailer from "nodemailer";
+import nodemailer from "nodemailer"; 
+
 
 export async function POST(req: Request) {
   try {

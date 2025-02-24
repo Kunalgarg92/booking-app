@@ -6,6 +6,7 @@ import { signInWithPopup } from "firebase/auth";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { BsSun, BsMoon } from "react-icons/bs";
 
 const LoginPage = () => {
   const [step, setStep] = useState<"email" | "password" | "otp" | "set-password">("email");
@@ -19,11 +20,22 @@ const LoginPage = () => {
   const [isNewUser, setIsNewUser] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [theme, setTheme] = useState("light");
   const router = useRouter();
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    setTheme(savedTheme);
+    document.documentElement.classList.toggle("dark", savedTheme === "dark");
     fetchUserData();
   }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
 
   const fetchUserData = async () => {
     const token = localStorage.getItem("token");
@@ -43,12 +55,7 @@ const LoginPage = () => {
       console.error("Error fetching user data:", error.response?.data || "Unknown error");
     }
   };
-  
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-  
-  
+
   const checkEmail = async () => {
     if (!email) {
       setMessage("Please enter your email.");
@@ -102,7 +109,6 @@ const LoginPage = () => {
     }
   };
   
-  
   const sendOtp = async () => {
     setLoading(true);
     setMessage("");
@@ -117,7 +123,6 @@ const LoginPage = () => {
     }
   };
 
- 
   const verifyOtp = async () => {
     if (!otp) {
       setMessage("Please enter OTP.");
@@ -128,7 +133,13 @@ const LoginPage = () => {
     setMessage("");
     try {
       const res = await axios.post("/api/auth/verify-otp", { email, otp });
-      setStep(res.data.hasPassword ? "password" : "set-password");
+
+      // **Fix: Ensure new users are redirected to set password**
+      if (isNewUser || !res.data.hasPassword) {
+        setStep("set-password");
+      } else {
+        setStep("password");
+      }
     } catch (error: any) {
       setMessage(error.response?.data?.message || "Invalid OTP.");
     } finally {
@@ -136,7 +147,6 @@ const LoginPage = () => {
     }
   };
 
- 
   const setNewPassword = async () => {
     if (!password || !confirmPassword) {
       setMessage("Please enter both password fields.");
@@ -164,7 +174,6 @@ const LoginPage = () => {
     }
   };
 
- 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setMessage("");
@@ -193,10 +202,14 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
-  
 
   return (
-    <div className="flex flex-col items-center space-y-4 p-6">
+    <div className={`flex flex-col items-center space-y-4 p-6 ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-black"} min-h-screen`}>
+       {/* Theme Toggle Button */}
+       <button onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700">
+        {theme === "light" ? <BsMoon size={20} /> : <BsSun size={20} />}
+      </button>
+
       <h2 className="text-2xl font-bold">Login</h2>
 
       {step === "email" && (
@@ -215,6 +228,38 @@ const LoginPage = () => {
         </>
       )}
 
+{step === "otp" && (
+  <>
+    {!otpSent && (
+      <button 
+        onClick={sendOtp} 
+        className="bg-blue-500 text-white px-4 py-2 rounded-md"
+      >
+        {loading ? "Sending OTP..." : "Send OTP"}
+      </button>
+    )}
+
+    {otpSent && (
+      <>
+        <input
+          type="text"
+          placeholder="Enter OTP"
+          className="border p-2 rounded-md w-64"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+        />
+        <button 
+          onClick={verifyOtp} 
+          className="bg-green-500 text-white px-4 py-2 rounded-md"
+        >
+          {loading ? "Verifying..." : "Verify OTP"}
+        </button>
+      </>
+    )}
+  </>
+)}
+
+
       {step === "password" && (
         <>
           <input
@@ -231,29 +276,53 @@ const LoginPage = () => {
         </>
       )}
 
-      {step === "otp" && (
-        <>
-          {!otpSent ? (
-            <button onClick={sendOtp} className="bg-blue-500 text-white px-4 py-2 rounded-md">
-              {loading ? "Sending OTP..." : "Send OTP"}
-            </button>
-          ) : (
-            <>
-              <input
-                type="text"
-                name="otp"
-                placeholder="Enter OTP"
-                className="border p-2 rounded-md w-64"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-              <button onClick={verifyOtp} className="bg-green-500 text-white px-4 py-2 rounded-md">
-                {loading ? "Verifying..." : "Verify OTP"}
-              </button>
-            </>
-          )}
-        </>
-      )}
+{step === "set-password" && (
+  <div className="flex flex-col items-center space-y-4">
+    <h3 className="text-xl font-semibold">Set Your Password</h3>
+    
+    <div className="relative w-64">
+      <input
+        type={showPassword ? "text" : "password"}
+        placeholder="Set Password"
+        className="border p-2 rounded-md w-full pr-10"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button 
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute right-3 top-2 text-gray-500"
+      >
+        {showPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
+      </button>
+    </div>
+
+    <div className="relative w-64">
+      <input
+        type={showConfirmPassword ? "text" : "password"}
+        placeholder="Confirm Password"
+        className="border p-2 rounded-md w-full pr-10"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+      />
+      <button 
+        type="button"
+        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+        className="absolute right-3 top-2 text-gray-500"
+      >
+        {showConfirmPassword ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
+      </button>
+    </div>
+
+    <button 
+      onClick={setNewPassword} 
+      className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-md transition duration-200"
+    >
+      {loading ? "Setting Password..." : "Set Password"}
+    </button>
+  </div>
+)}
+
 
       <button onClick={handleGoogleLogin} className="bg-red-500 text-white px-4 py-2 rounded-md">
         Sign in with Google
