@@ -12,13 +12,10 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
-        // ✅ Clear tokens from localStorage/sessionStorage
         localStorage.removeItem("jwt_token");
         localStorage.removeItem("token");
         sessionStorage.removeItem("jwt_token");
         sessionStorage.removeItem("token");
-  
-        // ✅ Redirect to login page after logout
         router.push("/auth/login");
       } else {
         console.error("❌ Logout failed");
@@ -29,8 +26,6 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
-  
-
   return (
     <PrivateRoute>
       <div className="p-6">

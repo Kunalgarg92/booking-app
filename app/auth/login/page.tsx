@@ -18,6 +18,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isNewUser, setIsNewUser] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [theme, setTheme] = useState("light");
@@ -133,8 +134,6 @@ const LoginPage = () => {
     setMessage("");
     try {
       const res = await axios.post("/api/auth/verify-otp", { email, otp });
-
-      // **Fix: Ensure new users are redirected to set password**
       if (isNewUser || !res.data.hasPassword) {
         setStep("set-password");
       } else {
@@ -205,7 +204,6 @@ const LoginPage = () => {
 
   return (
     <div className={`flex flex-col items-center space-y-4 p-6 ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-black"} min-h-screen`}>
-       {/* Theme Toggle Button */}
        <button onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700">
         {theme === "light" ? <BsMoon size={20} /> : <BsSun size={20} />}
       </button>
@@ -260,11 +258,10 @@ const LoginPage = () => {
 )}
 
 
-      {step === "password" && (
+{step === "password" && (
         <>
           <input
             type={showPassword ? "text" : "password"}
-            name="password"
             placeholder="Enter your password"
             className="border p-2 rounded-md w-64"
             value={password}
@@ -273,8 +270,20 @@ const LoginPage = () => {
           <button onClick={loginWithPassword} className="bg-green-500 text-white px-4 py-2 rounded-md">
             {loading ? "Logging in..." : "Login"}
           </button>
+
+<button
+  className="text-blue-500 text-sm mt-2 hover:underline"
+  onClick={() => {
+    setIsForgotPassword(true);
+    router.push("/forgot-password");
+  }}
+>
+  Forgot Password?
+</button>
+
         </>
       )}
+
 
 {step === "set-password" && (
   <div className="flex flex-col items-center space-y-4">

@@ -4,17 +4,12 @@ import { revokedTokens } from "@/utils/tokenStore";
 
 export async function POST(req: Request) {
   try {
-    // Get refresh token from cookies
     const cookies = req.headers.get("cookie");
     const parsedCookies = cookies ? cookie.parse(cookies) : {};
     const refreshToken = parsedCookies.refreshToken;
-
-    // Add refresh token to revoked list
     if (refreshToken) {
       revokedTokens.add(refreshToken);
     }
-
-    // Clear cookies correctly
     const headers = new Headers();
     headers.append(
       "Set-Cookie",
@@ -33,7 +28,7 @@ export async function POST(req: Request) {
           path: "/",
           expires: new Date(0),
         }),
-      ].join(", ") // Fix: Use comma instead of semicolon
+      ].join(", ")
     );
 
     return new NextResponse(JSON.stringify({ message: "Logout successful" }), {

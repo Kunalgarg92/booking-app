@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateAccessToken, verifyRefreshToken } from "@/utils/jwt";
 import cookie from "cookie";
-import { revokedTokens } from "@/utils/tokenStore"; // Ideally use DB storage
+import { revokedTokens } from "@/utils/tokenStore";
 
 export async function GET(req: Request) {
   try {
@@ -12,8 +12,6 @@ export async function GET(req: Request) {
     if (!refreshToken) {
       return NextResponse.json({ message: "No refresh token provided" }, { status: 401 });
     }
-
-    // 🚨 If refresh token is revoked, reject request and clear cookie
     if (revokedTokens.has(refreshToken)) {
       console.warn("❌ Blocked attempt to use a revoked refresh token.");
 
@@ -38,8 +36,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ accessToken: newAccessToken }, { status: 200 });
     } catch (error: any) {
       console.error("❌ Refresh token verification failed:", error.message);
-
-      // ✅ Only revoke the token if it failed verification
       revokedTokens.add(refreshToken);
 
       return new NextResponse(JSON.stringify({ message: "Invalid or expired refresh token" }), {
