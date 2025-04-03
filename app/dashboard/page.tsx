@@ -83,7 +83,7 @@ export default function DashboardPage() {
               Customer
             </button>
             <button
-              onClick={() => router.push("/provider/dashboard")}
+              onClick={() => router.push("/provider/desclaimer")}
               className="w-full py-3 bg-green-500 text-white font-semibold rounded-lg transform transition-all duration-300 hover:scale-105 hover:bg-green-600"
             >
               Provider

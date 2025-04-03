@@ -132,15 +132,81 @@ function MovieForm() {
     }
   };
 
+
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!movie.name) newErrors.name = "This field is empty";
-    if (!movie.image) newErrors.image = "This field is empty";
-    if (!movie.provider) newErrors.provider = "This field is empty";
-    if (!movie.releaseDate) newErrors.releaseDate = "This field is empty";
-    if (movie.rating <= 0) newErrors.rating = "This field is empty";
+    if (!movie.image || !/^https?:\/\//.test(movie.image)) {
+      newErrors.image = "Invalid image URL. Must start with http or https.";
+    }
+    if (!movie.provider) newErrors.provider = "Provider name is required.";
+    if (!movie.releaseDate) {
+      newErrors.releaseDate = "Release date is required.";
+    } else if (new Date(movie.releaseDate) < new Date()) {
+      newErrors.releaseDate = "Release date cannot be in the past.";
+    }
+    if (movie.rating < 0 || movie.rating > 10) {
+      newErrors.rating = "Rating must be between 0 and 10.";
+    }
+
+    // Validate seating details
+    if (
+      !movie.seatingDetails.rows ||
+      isNaN(Number(movie.seatingDetails.rows))
+    ) {
+      newErrors.rows = "Invalid number of rows";
+    }
+    if (
+      !movie.seatingDetails.columns ||
+      isNaN(Number(movie.seatingDetails.columns))
+    ) {
+      newErrors.columns = "Invalid number of columns";
+    }
+    if (
+      !movie.seatingDetails.lowPriceRows ||
+      isNaN(Number(movie.seatingDetails.lowPriceRows))
+    ) {
+      newErrors.lowPriceRows = "Invalid number of low price rows";
+    }
+    if (
+      !movie.seatingDetails.lowPrice ||
+      isNaN(Number(movie.seatingDetails.lowPrice))
+    ) {
+      newErrors.lowPrice = "Invalid low price";
+    }
+    if (
+      !movie.seatingDetails.highPrice ||
+      isNaN(Number(movie.seatingDetails.highPrice))
+    ) {
+      newErrors.highPrice = "Invalid high price";
+    }
+
+    // Validate showtimes
+    if (movie.showtimes.length === 0) {
+      newErrors.showtimes = "At least one location is required";
+    } else {
+      movie.showtimes.forEach((loc, locIndex) => {
+        if (!loc.location) {
+          newErrors[`location${locIndex}`] = "City is required";
+        }
+        if (loc.schedules.length === 0) {
+          newErrors[`schedules${locIndex}`] =
+            "At least one schedule is required";
+        } else {
+          loc.schedules.forEach((schedule, scheduleIndex) => {
+            if (!schedule.date) {
+              newErrors[`date${locIndex}${scheduleIndex}`] = "Date is required";
+            }
+            if (schedule.times.length === 0) {
+              newErrors[`times${locIndex}${scheduleIndex}`] =
+                "At least one showtime is required";
+            }
+          });
+        }
+      });
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -241,7 +307,6 @@ function MovieForm() {
             }
           : location
       );
-
       return { ...prevMovie, showtimes: updatedShowtimes };
     });
   };
@@ -316,6 +381,7 @@ function MovieForm() {
               🎟️ Seats & Pricing
             </h3>
 
+            
             {/* Rows Input */}
             <div className="border border-white/20 p-4 rounded-lg bg-white/10 mt-3">
               <label className="text-white text-sm">Total Rows</label>
@@ -334,6 +400,9 @@ function MovieForm() {
                 }
                 className="w-full p-3 mt-1 bg-black/20 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
               />
+              {errors.rows && (
+                <p className="text-red-500 text-sm">{errors.rows}</p>
+              )}
             </div>
 
             {/* Columns Input */}

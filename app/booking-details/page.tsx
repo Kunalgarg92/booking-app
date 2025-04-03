@@ -3,27 +3,47 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface BookingDetails {
-  movie: string;
-  provider: string;
+  movieId: string;
   location: string;
   date: string;
   time: string;
   seats: string[];
-  pricePerSeat: number;
 }
 
 const PLATFORM_FEE = 40;
-const TAX_RATE = 0.18; 
+const TAX_RATE = 0.18;
 
 const BookingDetailsPage: React.FC = () => {
   const searchParams = useSearchParams();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
+  const [movieName, setMovieName] = useState<string>("");
+  const [lowPrice, setLowPrice] = useState<number>(0);
+  const [highPrice, setHighPrice] = useState<number>(0);
+  const [lowPriceRows, setLowPriceRows] = useState<number>(0);
 
   useEffect(() => {
+    const fetchMovie = async (movieId: string) => {
+      try {
+        const response = await fetch(`/api/movie/${movieId}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setMovieName(data.data.name);
+          setLowPrice(data.data.lowPrice);
+          setHighPrice(data.data.highPrice);
+          setLowPriceRows(data.data.lowPriceRows);
+        }
+      } catch (error) {
+        console.error("Error fetching movie details:", error);
+      }
+    };
+
     const data = searchParams.get("data");
     if (data) {
       try {
-        setBooking(JSON.parse(decodeURIComponent(data)));
+        const parsedData: BookingDetails = JSON.parse(decodeURIComponent(data));
+        setBooking(parsedData);
+        fetchMovie(parsedData.movieId);
       } catch (error) {
         console.error("Error parsing booking details:", error);
       }
@@ -34,7 +54,18 @@ const BookingDetailsPage: React.FC = () => {
     return <div className="text-white text-center p-4">Loading booking details...</div>;
   }
 
-  const ticketCost = booking.seats.length * booking.pricePerSeat;
+  // Function to calculate price per seat
+  const calculatePricePerSeat = (seat: string): number => {
+    // Extract row number from seat (e.g., "A3" -> row A, "B5" -> row B)
+    const rowLetter = seat[0];
+    const rowNumber = rowLetter.charCodeAt(0) - 64; // Convert "A" -> 1, "B" -> 2, etc.
+
+    // If the row is within the lowPriceRows range, return lowPrice, else highPrice
+    return rowNumber <= lowPriceRows ? lowPrice : highPrice;
+  };
+
+  // Compute total ticket cost dynamically
+  const ticketCost = booking.seats.reduce((total, seat) => total + calculatePricePerSeat(seat), 0);
   const taxAmount = ticketCost * TAX_RATE;
   const totalAmount = ticketCost + PLATFORM_FEE + taxAmount;
 
@@ -43,15 +74,18 @@ const BookingDetailsPage: React.FC = () => {
       <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-2xl">
         <h2 className="text-3xl font-bold text-center mb-6 text-yellow-400">Booking Confirmation</h2>
         <div className="border-b border-gray-700 pb-4 mb-4">
-          <h3 className="text-xl font-semibold">{booking.movie} <span className="text-green-400">({booking.provider})</span></h3>
+          <h3 className="text-xl font-semibold">{movieName}</h3>
           <p className="text-gray-400 mt-2">Location: <span className="text-white">{booking.location}</span></p>
           <p className="text-gray-400">Date: <span className="text-white">{booking.date}</span></p>
           <p className="text-gray-400">Time: <span className="text-white">{booking.time}</span></p>
         </div>
+
         <h3 className="text-lg font-semibold">Seats:</h3>
         <div className="flex flex-wrap gap-2 mt-2 mb-4">
           {booking.seats.map((seat) => (
-            <span key={seat} className="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">{seat}</span>
+            <span key={seat} className="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold">
+              {seat} - ₹{calculatePricePerSeat(seat)}
+            </span>
           ))}
         </div>
 
@@ -60,7 +94,7 @@ const BookingDetailsPage: React.FC = () => {
           <h3 className="text-xl font-semibold text-yellow-400">Billing Details</h3>
           <div className="mt-3">
             <p className="flex justify-between text-gray-300">
-              <span>Ticket Price ({booking.seats.length} x ₹{booking.pricePerSeat})</span>
+              <span>Ticket Price</span>
               <span>₹{ticketCost.toFixed(2)}</span>
             </p>
             <p className="flex justify-between text-gray-300">
